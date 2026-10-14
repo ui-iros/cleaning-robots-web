@@ -35,3 +35,16 @@ export async function resetEpisode(algorithm) {
   }
   return response.json();
 }
+
+export async function fetchSnapshots({ algorithms, seed, steps }) {
+  const response = await fetch(`${API_URL}/arena/snapshots`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ algorithms, seed, steps }),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(detail?.detail || `Failed to load snapshots: ${response.status}`);
+  }
+  return response.json();
+}

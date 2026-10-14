@@ -2,11 +2,45 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchAlgorithms, arenaWebsocketUrl } from "../api.js";
 import MiniGridCanvas from "./MiniGridCanvas.jsx";
+import SnapshotArena from "./SnapshotArena.jsx";
 
 const MAX_INSTANCES = 5;
 const MODEL_SEEDS = [12345, 12346, 12347, 12348, 12349];
 
 export default function ArenaSection() {
+  const { t } = useTranslation();
+  const [view, setView] = useState("snapshots");
+
+  return (
+    <section className="arena-section" id="arena">
+      <div className="section-heading">
+        <p className="section-kicker">{t("arena.title")}</p>
+        <h2>{t("arena.title")}</h2>
+        <p>{view === "snapshots" ? t("arena.snapshots.description") : t("arena.description")}</p>
+        <p className="section-note">{t("arena.limit_note")}</p>
+      </div>
+
+      <div className="arena-view-tabs" role="tablist" aria-label={t("arena.title")}>
+        {["snapshots", "live"].map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={view === id}
+            className={`arena-view-tab ${view === id ? "active" : ""}`}
+            onClick={() => setView(id)}
+          >
+            {t(`arena.view.${id}`)}
+          </button>
+        ))}
+      </div>
+
+      {view === "snapshots" ? <SnapshotArena /> : <LiveArena />}
+    </section>
+  );
+}
+
+function LiveArena() {
   const { t } = useTranslation();
   const [algorithms, setAlgorithms] = useState([]);
   const [selectedAlgorithms, setSelectedAlgorithms] = useState([]);
@@ -147,14 +181,7 @@ export default function ArenaSection() {
   const gridCount = Math.min(Math.max(arenaStates.length || selectedAlgorithms.length || 1, 1), 5);
 
   return (
-    <section className="arena-section" id="arena">
-      <div className="section-heading">
-        <p className="section-kicker">{t("arena.title")}</p>
-        <h2>{t("arena.title")}</h2>
-        <p>{t("arena.description")}</p>
-        <p className="section-note">{t("arena.limit_note")}</p>
-      </div>
-
+    <>
       {error ? <div className="error-banner">{error}</div> : null}
 
       <div className="arena-controls">
@@ -265,7 +292,7 @@ export default function ArenaSection() {
               </span>
             </header>
             <div className="arena-canvas-wrap">
-              <MiniGridCanvas state={state} />
+              <MiniGridCanvas state={state} stepIntervalMs={isPlaying ? Math.round(520 / speedMultiplier) : undefined} />
             </div>
             <div className="arena-stats">
               <div className="arena-stat">
@@ -284,6 +311,6 @@ export default function ArenaSection() {
           </article>
         ))}
       </div>
-    </section>
+    </>
   );
 }

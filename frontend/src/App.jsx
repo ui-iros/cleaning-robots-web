@@ -245,7 +245,7 @@ export default function App() {
         {error ? <div className="error-banner">{error}</div> : null}
 
         <div className="workspace">
-          <GridCanvas state={state} />
+          <GridCanvas state={state} stepIntervalMs={isPlaying ? Math.round(520 / speedMultiplier) : undefined} />
           <aside className="demo-side">
             <ControlPanel
               algorithms={algorithms}

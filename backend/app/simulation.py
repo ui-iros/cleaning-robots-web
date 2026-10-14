@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +75,16 @@ class PolicyCache:
         self._load_errors: dict[str, str] = {}
         self._load_times: dict[str, float] = {}
         self._startup_duration: float = 0.0
+        self._predict_locks = {algorithm: threading.Lock() for algorithm in ALGORITHMS}
+
+    def predict(self, algorithm: str, observation: np.ndarray) -> Any:
+        # SB3 policies keep their action distribution as mutable state on the
+        # shared model, so concurrent predict() calls (several websockets plus
+        # snapshot rollouts) can read another caller's distribution.
+        model = self.get(algorithm)
+        with self._predict_locks[algorithm]:
+            action, _ = model.predict(observation, deterministic=True)
+        return action
 
     @property
     def load_errors(self) -> dict[str, str]:
@@ -167,6 +179,44 @@ def arena_step(envs: dict[str, VacuumCleaningEnv], action: int | str | None = No
     return states
 
 
+SNAPSHOT_MAX_COLUMNS = 12
+
+
+def snapshot_rollout(algorithm: str, seed: int, steps: list[int]) -> dict[str, Any]:
+    """Run one auto-policy episode and capture the board at each requested time step.
+
+    Policies act deterministically and the env is seeded, so a rollout is fully
+    determined by its arguments and safe to cache.
+    """
+    algorithm = normalize_algorithm(algorithm)
+    return _snapshot_rollout_cached(algorithm, int(seed), tuple(sorted(set(int(step) for step in steps))))
+
+
+@lru_cache(maxsize=128)
+def _snapshot_rollout_cached(algorithm: str, seed: int, steps: tuple[int, ...]) -> dict[str, Any]:
+    env = make_env(seed=seed)
+    try:
+        state = reset_env(env, algorithm=algorithm, seed=seed)
+        snapshots: list[dict[str, Any]] = []
+        ended_at: int | None = None
+        for target in steps:
+            while state["step_count"] < target and ended_at is None:
+                state = step_env(env, algorithm=algorithm, action=None)
+                if state["terminated"] or state["truncated"]:
+                    ended_at = state["step_count"]
+            # An episode that ended early keeps showing its final board.
+            snapshots.append({**state, "requested_step": target})
+        return {
+            "algorithm": algorithm,
+            "name": ALGORITHMS[algorithm].name,
+            "snapshots": snapshots,
+            "ended_at": ended_at,
+            "episode_return": state["episode_return"],
+        }
+    finally:
+        env.close()
+
+
 def normalize_algorithm(algorithm: str) -> str:
     value = algorithm.lower().strip()
     if value not in ALGORITHMS:
@@ -198,10 +248,9 @@ def continuous_to_discrete_action(env: VacuumCleaningEnv, action: Any) -> int:
 def resolve_action(env: VacuumCleaningEnv, algorithm: str, action: int | str | None) -> tuple[int, str]:
     algorithm = normalize_algorithm(algorithm)
     if action is None or (isinstance(action, str) and action.lower().strip() == "auto"):
-        model = policy_cache.get(algorithm)
         observation = env._state_to_obs(env._current_state)
         policy_observation = normalize_observation(env, observation)
-        predicted_action, _ = model.predict(policy_observation, deterministic=True)
+        predicted_action = policy_cache.predict(algorithm, policy_observation)
         if ALGORITHMS[algorithm].continuous_policy:
             action_index = continuous_to_discrete_action(env, predicted_action)
         else:
@@ -308,6 +357,26 @@ def serialize_env_state(
         "terminated": bool(terminated),
         "truncated": bool(truncated),
         "info": serializable_info,
+        "render": _render_metadata(env),
+    }
+
+
+def _cell_or_none(pos: Any) -> list[int] | None:
+    if pos is None:
+        return None
+    return [int(pos[0]), int(pos[1])]
+
+
+def _render_metadata(env: VacuumCleaningEnv) -> dict[str, Any]:
+    """Transient fields the frontend needs to draw frames identical to the gym's pygame renderer."""
+    return {
+        "previous_robot_pos": _cell_or_none(env._previous_robot_pos),
+        "move_case": str(env._last_move_case),
+        "collision_pos": _cell_or_none(env._last_collision_pos),
+        "boom_pos": _cell_or_none(env._last_boom_pos),
+        "manual_reset": bool(env._last_manual_reset),
+        "max_steps": int(env._max_steps),
+        "dynamic_dirt": bool(np.any(env.rho[:3] > 0)),
     }
 
 

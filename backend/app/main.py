@@ -5,12 +5,24 @@ import os
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .schemas import AlgorithmsResponse, EnvStateResponse, ResetRequest, StepRequest
-from .simulation import ALGORITHMS, make_env, policy_cache, reset_env, step_env, arena_step, arena_reset, make_arena_envs
+from .schemas import AlgorithmsResponse, EnvStateResponse, ResetRequest, SnapshotRequest, StepRequest
+from .simulation import (
+    ALGORITHMS,
+    SNAPSHOT_MAX_COLUMNS,
+    arena_reset,
+    arena_step,
+    make_arena_envs,
+    make_env,
+    normalize_algorithm,
+    policy_cache,
+    reset_env,
+    snapshot_rollout,
+    step_env,
+)
 
 logger = logging.getLogger("vacuum-rl.api")
 
@@ -86,6 +98,28 @@ def algorithms() -> dict:
 @app.post("/reset", response_model=EnvStateResponse)
 def reset(payload: ResetRequest = ResetRequest()) -> dict:
     return reset_env(_rest_env, algorithm=payload.algorithm, seed=payload.seed)
+
+
+@app.post("/arena/snapshots")
+def arena_snapshots(payload: SnapshotRequest) -> dict:
+    max_steps = int(_rest_env._max_steps)
+    steps = sorted(set(payload.steps))
+    if len(steps) > SNAPSHOT_MAX_COLUMNS:
+        raise HTTPException(status_code=422, detail=f"At most {SNAPSHOT_MAX_COLUMNS} time steps are supported.")
+    if steps[0] < 0 or steps[-1] > max_steps:
+        raise HTTPException(status_code=422, detail=f"Time steps must be between 0 and {max_steps}.")
+    try:
+        algorithms = list(dict.fromkeys(normalize_algorithm(algorithm) for algorithm in payload.algorithms))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    rows = []
+    for algorithm in algorithms:
+        try:
+            rows.append(snapshot_rollout(algorithm, payload.seed, steps))
+        except RuntimeError as exc:
+            rows.append({"algorithm": algorithm, "name": ALGORITHMS[algorithm].name, "error": str(exc), "snapshots": []})
+    return {"seed": payload.seed, "steps": steps, "max_steps": max_steps, "rows": rows}
 
 
 @app.websocket("/ws/step")

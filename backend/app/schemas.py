@@ -19,6 +19,16 @@ class StepRequest(BaseModel):
     mode: Literal["auto", "manual"] | None = None
 
 
+class SnapshotRequest(BaseModel):
+    algorithms: list[str] = Field(min_length=1, max_length=5)
+    seed: int = 12345
+    steps: list[int] = Field(
+        default=[0, 50, 100, 200, 300, 400, 500],
+        min_length=1,
+        description="Time steps to capture; an episode that ends early repeats its final board.",
+    )
+
+
 class AlgorithmInfo(BaseModel):
     id: str
     name: str
@@ -55,3 +65,4 @@ class EnvStateResponse(BaseModel):
     terminated: bool
     truncated: bool
     info: dict[str, Any]
+    render: dict[str, Any] = Field(default_factory=dict)

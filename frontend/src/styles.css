@@ -351,29 +351,20 @@ h2 {
   border-top: 1px solid var(--line);
 }
 
+/* Legend icons are drawn by the same canvas drawers as the board (see sim/gymRenderer.js). */
 .legend-item {
   align-items: center;
   display: inline-flex;
-  font-size: 11px;
-  font-weight: 700;
-  gap: 5px;
-  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  color: rgb(96, 108, 128);
 }
 
-.swatch {
-  border-radius: 3px;
-  display: inline-block;
-  height: 14px;
-  width: 14px;
+.legend-icon {
+  display: block;
   flex-shrink: 0;
 }
-
-.swatch-robot { background: #111827; border-radius: 50%; }
-.swatch-dock { background: #4169a8; }
-.swatch-dirt1 { background: #f0c24b; }
-.swatch-dirt2 { background: #4bb6aa; }
-.swatch-dirt3 { background: #d96a5e; }
-.swatch-obstacle { background: #344054; }
 
 @media (max-width: 900px) {
   .board-shell { min-height: 360px; }
@@ -946,4 +937,155 @@ input[type="range"] {
   .arena-grid.count-4,
   .arena-grid.count-5 { grid-template-columns: minmax(0, 1fr); }
   .arena-controls { flex-direction: column; }
+}
+
+/* Arena view switch + snapshot matrix (rows = algorithms, columns = time steps). */
+.arena-view-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--lab-mist);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+button.arena-view-tab {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+  min-height: 34px;
+  padding: 0 16px;
+}
+
+button.arena-view-tab:hover {
+  background: var(--paper-white);
+  border-color: var(--line);
+  color: var(--navy);
+}
+
+button.arena-view-tab.active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+
+.snapshot-steps-input {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  min-height: 36px;
+  padding: 0 8px;
+}
+
+.snapshot-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  max-width: 1240px;
+  position: relative;
+}
+
+.snapshot-panel .grid-legend { border-top: none; border-bottom: 1px solid var(--line); }
+
+.snapshot-panel.is-loading .snapshot-scroll { opacity: 0.45; transition: opacity 0.2s; }
+
+.snapshot-status {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 48px 16px;
+  text-align: center;
+}
+
+.snapshot-status.overlay {
+  background: var(--paper-white);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(25, 47, 89, 0.1);
+  left: 50%;
+  padding: 10px 16px;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.snapshot-scroll {
+  overflow-x: auto;
+  padding: 14px;
+}
+
+.snapshot-matrix {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+}
+
+.snapshot-step-header {
+  color: var(--navy);
+  font-family: Consolas, "Cascadia Mono", Menlo, monospace;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.snapshot-row-label {
+  align-content: center;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.snapshot-row-label small {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.snapshot-row-label small strong { color: var(--navy); }
+.snapshot-row-label .snapshot-ended { color: var(--ui-red); }
+
+.snapshot-cell {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+}
+
+.snapshot-board {
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Out of flow so the canvas's bitmap size never widens its grid column. */
+.snapshot-canvas { display: block; height: 100%; inset: 0; position: absolute; width: 100%; }
+
+.snapshot-cell.ended .snapshot-board { opacity: 0.55; }
+
+.snapshot-cell figcaption {
+  color: var(--text-muted);
+  display: flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  justify-content: space-between;
+  white-space: nowrap;
+}
+
+.snapshot-dirt.cleanest {
+  background: rgba(30, 170, 91, 0.14);
+  border-radius: 3px;
+  color: #166534;
+  padding: 0 4px;
+}
+
+.snapshot-row-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  color: #b42318;
+  font-size: 12px;
+  padding: 10px 12px;
 }
