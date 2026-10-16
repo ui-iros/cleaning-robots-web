@@ -12,7 +12,7 @@ const rgb = (r, g, b) => `rgb(${r}, ${g}, ${b})`;
 const rgba = (r, g, b, a) => `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
 export const COLORS = {
-  bg: rgb(235, 239, 245),
+  bg: rgb(246, 247, 249),
   board: rgb(246, 248, 251),
   tile: rgb(255, 255, 255),
   tileAlt: rgb(249, 250, 252),
@@ -20,26 +20,27 @@ export const COLORS = {
   tileShadow: rgb(214, 223, 235),
   grid: rgb(198, 208, 222),
   text: rgb(17, 24, 39),
-  muted: rgb(96, 108, 128),
-  dock: rgb(216, 248, 226),
-  dockLine: rgb(48, 163, 93),
-  robot: rgb(32, 102, 209),
-  robotDark: rgb(20, 64, 145),
-  robotHalo: rgb(219, 234, 254),
+  muted: rgb(67, 79, 97),
+  dock: rgb(211, 239, 220),
+  dockLine: rgb(34, 113, 74),
+  robot: rgb(38, 46, 56),
+  robotDark: rgb(12, 18, 25),
+  robotHalo: rgb(224, 230, 236),
   robotShadow: rgb(145, 158, 178),
-  dry: rgb(214, 121, 35),
-  dryBg: rgb(255, 247, 237),
-  wet: rgb(20, 143, 203),
-  wetBg: rgb(240, 249, 255),
-  sticky: rgb(209, 69, 76),
-  stickyBg: rgb(255, 241, 242),
-  obstacle: rgb(30, 41, 59),
+  dry: rgb(147, 101, 10),
+  dryBg: rgb(252, 226, 147),
+  wet: rgb(25, 112, 174),
+  wetBg: rgb(197, 228, 249),
+  sticky: rgb(166, 77, 35),
+  stickyBg: rgb(248, 210, 183),
+  obstacle: rgb(67, 73, 80),
   obstacleDot: rgb(71, 85, 105),
   panelLine: rgb(220, 227, 236),
   battery: rgb(30, 170, 91),
   danger: rgb(220, 38, 38),
-  accent: rgb(67, 83, 255),
-  accentSoft: rgb(232, 235, 255),
+  accent: rgb(43, 100, 179),
+  accentSoft: rgb(228, 239, 253),
+  observation: rgb(201, 49, 63),
   white: rgb(255, 255, 255),
 };
 
@@ -156,36 +157,29 @@ function drawDock(ctx, r) {
 
 // Keeps the charging station recognisable while the robot covers it.
 function drawDockBadge(ctx, r) {
-  const w = Math.floor(r.w * 0.52);
-  const h = Math.floor(r.h * 0.34);
-  const badge = rect(r.x + r.w + 3 - w, r.y - 3, w, h);
-  const radius = Math.floor(h / 2);
-  fillRect(ctx, badge, COLORS.white, radius);
-  strokeRect(ctx, badge, COLORS.dockLine, 1, radius);
-  drawBattery(ctx, center(badge), badge.w * 0.64);
+  if (r.w < 40) { drawBattery(ctx, [r.x + r.w - 5, r.y + 5], 10); return; }
+  const badge = rect(r.x, r.y + r.h - 19, r.w, 20);
+  fillRect(ctx, badge, COLORS.white, 4);
+  strokeRect(ctx, badge, COLORS.dockLine, 1, 4);
+  drawBattery(ctx, [badge.x + 11, badge.y + 10], 14);
+  centeredText(ctx, "DOCK", rect(badge.x + 23, badge.y, badge.w - 26, 20), COLORS.dockLine, 'bold 14px "Segoe UI", sans-serif');
 }
 
 function drawObstacle(ctx, r) {
   fillRect(ctx, r, COLORS.obstacle, scaled(9, r, 3));
-  const [cx, cy] = center(r);
-  for (const [dx, dy, radius] of [[-14, -10, 5], [7, -12, 4], [12, 9, 7], [-6, 10, 4]]) {
-    circle(ctx, [cx + offset(dx, r), cy + offset(dy, r)], scaled(radius, r), COLORS.obstacleDot);
-  }
+  const inset = scaled(16, r, 4), marker = inflate(r, -2 * inset);
+  line(ctx, [marker.x, marker.y], [marker.x + marker.w, marker.y + marker.h], COLORS.panelLine, scaled(3, r));
+  line(ctx, [marker.x + marker.w, marker.y], [marker.x, marker.y + marker.h], COLORS.panelLine, scaled(3, r));
 }
 
-function drawRobot(ctx, r, { shadow = true, centerOverride = null, heading = null } = {}) {
+function drawRobot(ctx, r, { shadow = true, centerOverride = null } = {}) {
   const [cx, cy] = centerOverride || center(r);
   const radius = scaled(16, r, 4);
   if (shadow) circle(ctx, [cx + 2, cy + 4], radius + 3, COLORS.robotShadow);
-  circle(ctx, [cx, cy], radius + scaled(6, r), COLORS.robotHalo);
+  circle(ctx, [cx, cy], radius + scaled(4, r), COLORS.robotHalo);
   circle(ctx, [cx, cy], radius, COLORS.robot);
-  circle(ctx, [cx, cy], Math.max(2, Math.floor(radius / 3)), COLORS.white);
+  circle(ctx, [cx, cy], scaled(5, r, 2), rgb(242, 246, 250));
   ring(ctx, [cx, cy], radius, COLORS.robotDark, scaled(3, r));
-  circle(ctx, [cx, cy - radius + scaled(5, r)], Math.max(1, Math.floor(radius / 7)), COLORS.white);
-  if (heading) {
-    const [dx, dy] = heading;
-    circle(ctx, [cx + dx * scaled(9, r), cy + dy * scaled(9, r)], scaled(3, r), COLORS.white);
-  }
 }
 
 function drawDirt(ctx, r, level) {
@@ -312,6 +306,9 @@ export function drawBoard(ctx, state, { robotProgress = 1, effectPhase = 1, show
   fillRect(ctx, boardBg, COLORS.board, 16);
   strokeRect(ctx, boardBg, COLORS.panelLine, 1, 16);
 
+  for (let col = 1; col <= cols; col++) centeredText(ctx, String(col), rect((col - 1) * CELL_SIZE, -24, CELL_SIZE, 24), COLORS.muted);
+  for (let row = 1; row <= rows; row++) centeredText(ctx, String(row), rect(-24, (row - 1) * CELL_SIZE, 24, CELL_SIZE), COLORS.muted);
+
   for (let row = 1; row <= rows; row += 1) {
     for (let col = 1; col <= cols; col += 1) {
       const pos = [row, col];
@@ -320,7 +317,10 @@ export function drawBoard(ctx, state, { robotProgress = 1, effectPhase = 1, show
       fillRect(ctx, r, (row + col) % 2 === 0 ? COLORS.tileAlt : COLORS.tile, 11);
       const inner = inflate(r, -9);
       if (sameCell(pos, previousPos) && !sameCell(pos, robotPos)) fillRect(ctx, inner, COLORS.tileSeen, 10);
-      if (sameCell(pos, state.dock)) drawDock(ctx, inner);
+      if (sameCell(pos, state.dock)) {
+        drawDock(ctx, inner);
+        if (!sameCell(pos, robotPos)) centeredText(ctx, "DOCK", rect(inner.x, inner.y + inner.h - 20, inner.w, 18), COLORS.dockLine, 'bold 14px "Segoe UI", sans-serif');
+      }
       else if (obstacles.has(`${row},${col}`)) drawObstacle(ctx, inner);
       else drawDirt(ctx, inner, state.grid[row - 1][col - 1]);
       strokeRect(ctx, r, COLORS.grid, 1, 11);
@@ -364,10 +364,20 @@ export function drawBoard(ctx, state, { robotProgress = 1, effectPhase = 1, show
     line(ctx, start, moving, COLORS.accent, 3);
     drawRobot(ctx, endRect, { centerOverride: moving, heading });
   }
+
+  // The same nine local features shown by the gym viewer, clipped to the map.
+  if (robotPos) {
+    const top = Math.max(1, robotPos[0] - 1), bottom = Math.min(rows, robotPos[0] + 1);
+    const left = Math.max(1, robotPos[1] - 1), right = Math.min(cols, robotPos[1] + 1);
+    const view = rect((left - 1) * CELL_SIZE + 2, (top - 1) * CELL_SIZE + 2, (right - left + 1) * CELL_SIZE - 4, (bottom - top + 1) * CELL_SIZE - 4);
+    ctx.save(); ctx.setLineDash([10, 6]); ctx.strokeStyle = COLORS.observation; ctx.lineWidth = 2;
+    ctx.strokeRect(view.x, view.y, view.w, view.h); ctx.restore();
+  }
 }
 
 /** Same icons the gym draws in its side-panel legend. */
-export const LEGEND_ITEMS = ["dock", "robot", "dry", "wet", "sticky", "obstacle", "clean"];
+export const LEGEND_ITEMS = ["dock", "robot", "dry", "clean", "wet", "obstacle", "sticky"];
+export const LEGEND_LABELS = { dock: "Charging dock", robot: "Robot", dry: "Dry dirt\n(Low: 1)", clean: "Clean", wet: "Wet dirt\n(Medium: 2)", obstacle: "Obstacle", sticky: "Sticky dirt\n(High: 3)" };
 
 export function drawLegendMarker(ctx, r, kind) {
   if (kind === "dock") {

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { useTranslation } from "react-i18next";
-import { BOARD_MARGIN, COLORS, LEGEND_ITEMS, boardSize, drawBoard, drawLegendMarker, rect } from "../sim/gymRenderer.js";
+import { BOARD_MARGIN, COLORS, LEGEND_ITEMS, LEGEND_LABELS, boardSize, drawBoard, drawLegendMarker, rect } from "../sim/gymRenderer.js";
 
 // Frame timings of the gym's human render mode: 5 frames at 24fps for a move,
 // 14 frames at 30fps for a bump, 18 frames at 30fps for a battery reset.
@@ -56,6 +55,7 @@ export default function SimBoard({
   padding = 0,
   stepIntervalMs,
   className,
+  style,
   canvasClassName,
   ariaLabel,
   animate = true,
@@ -101,7 +101,7 @@ export default function SimBoard({
   }, [padding, showEffects]);
 
   return (
-    <div className={className}>
+    <div className={className} style={style}>
       <canvas ref={canvasRef} className={canvasClassName} aria-label={ariaLabel} />
       {showLegend ? <BoardLegend /> : null}
     </div>
@@ -127,13 +127,12 @@ function LegendIcon({ kind, size }) {
 }
 
 export function BoardLegend({ iconSize = 22 }) {
-  const { t } = useTranslation();
   return (
     <div className="grid-legend">
       {LEGEND_ITEMS.map((kind) => (
         <span key={kind} className="legend-item">
           <LegendIcon kind={kind} size={iconSize} />
-          {t(`legend.${kind}`)}
+          {LEGEND_LABELS[kind]}
         </span>
       ))}
     </div>

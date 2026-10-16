@@ -1,79 +1,30 @@
-# Deployment
+# GitHub Pages deployment
 
-## Backend: Hugging Face Spaces
+Site: https://ui-iros.github.io/cleaning-robots-web/
 
-Space URL:
+The viewer is static and runs its manual/random simulation in the browser. It needs no Python service, API URL, WebSocket server, or ML checkpoint download.
 
-- Repo page: https://huggingface.co/spaces/cjoyy/vacuum-rl
-- Runtime URL: https://cjoyy-vacuum-rl.hf.space
+1. Keep **Settings → Pages → Source** set to **GitHub Actions**.
+2. Push changes to `main`, or manually run **Deploy GitHub Pages** in Actions.
+3. The workflow installs frontend dependencies, runs lint and simulator tests, builds with the Pages base path, and deploys `frontend/dist`.
 
-Required files:
-
-- `README.md` with Docker Space metadata:
-  - `sdk: docker`
-  - `app_port: 7860`
-- `Dockerfile`
-- `requirements.txt`
-- `backend/`
-- `ml/`
-
-Deploy with the Hugging Face CLI:
-
-```bash
-hf auth login
-hf upload cjoyy/vacuum-rl . . --repo-type=space \
-  --exclude ".git/*" \
-  --exclude ".venv/*" \
-  --exclude "frontend/node_modules/*" \
-  --exclude "frontend/dist/*" \
-  --exclude "*.log"
-```
-
-After the Space finishes building, verify:
-
-```bash
-curl https://cjoyy-vacuum-rl.hf.space/health
-curl https://cjoyy-vacuum-rl.hf.space/algorithms
-```
-
-Expected health response:
-
-```json
-{"status":"ok"}
-```
-
-## Frontend: GitHub Pages
-
-Repository: `ui-iros/cleaning-robots-web` (the former `cjoyy/vacuum-rl` URL redirects here).
-Site URL: https://ui-iros.github.io/cleaning-robots-web/
-
-1. In repository **Settings → Pages**, select **GitHub Actions** as the publishing source.
-2. In **Settings → Secrets and variables → Actions → Variables**, set `VITE_API_URL` to the public HTTPS backend URL. The workflow defaults to `https://cjoyy-vacuum-rl.hf.space`; that old endpoint returned 404 when checked on October 16, 2026 and must be restored or replaced for simulations to work.
-3. Push to `main`, or run **Deploy GitHub Pages** manually in Actions.
-
-The workflow installs dependencies, lints, downloads the paper PDF from Git LFS, builds the frontend with the Pages base path, and publishes `frontend/dist`. It downloads only the paper, not the ML checkpoints.
-The generated `404.html` loads the React app for direct `/arena` links and refreshes. GitHub Pages serves those fallback requests with HTTP 404 even though the app renders.
-
-Deploy the updated backend separately so its CORS configuration allows `https://ui-iros.github.io`. GitHub Pages hosts the frontend; Python inference and WebSockets run on the backend.
-
-For a local Pages build (PowerShell):
+For a local build that matches Pages (PowerShell):
 
 ```powershell
 cd frontend
 $env:VITE_BASE_PATH = '/cleaning-robots-web/'
-$env:VITE_API_URL = 'https://YOUR-BACKEND-HOST'
 npm ci
 npm run lint
+npm test
 npm run build
 ```
 
-Normal local development and the existing Docker build retain the root base path `/` when `VITE_BASE_PATH` is unset. Docker still serves the frontend and backend from the same origin.
+Without `VITE_BASE_PATH`, the build uses `/`, suitable for local development and Docker. The generated `404.html` loads the viewer for old nested URLs such as `/arena`; GitHub Pages serves those fallback responses with HTTP 404.
 
-## Production Smoke Test
+## Smoke check
 
-1. Open the GitHub Pages site URL and verify the paper PDF loads.
-2. Confirm the status pill says `connected`.
-3. Click `Step`; the step counter should increase and the grid should update.
-4. Click `Play`; the grid should continue updating through WebSocket messages.
-5. Check browser console for failed WebSocket/CORS requests.
-6. Open `/cleaning-robots-web/arena` directly and refresh it; the arena should render via the SPA fallback.
+- Open the site: the map and Run Status should appear without network errors.
+- Select a manual action and Step; test Play/Pause and Reset.
+- Apply random and custom layouts; test invalid/disconnected layouts.
+- Save and reload a configuration, then export a PNG.
+- Check the layout on a narrow screen.

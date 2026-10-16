@@ -1,106 +1,37 @@
----
-title: Vacuum RL
-emoji: 🧹
-colorFrom: blue
-colorTo: green
-sdk: docker
-app_port: 7860
----
+# Cleaning Robots Web
 
-# vacuum-rl
+![Lint](https://github.com/ui-iros/cleaning-robots-web/actions/workflows/lint.yml/badge.svg)
 
-![Lint](https://github.com/cjoyy/vacuum-rl/actions/workflows/lint.yml/badge.svg)
+[Open the viewer](https://ui-iros.github.io/cleaning-robots-web/)
 
-Web app monorepo for running and visualizing trained reinforcement-learning policies on the Vacuum Cleaner Gymnasium environment. Features a single-grid interactive demo and a multi-grid arena for side-by-side algorithm comparison.
+A browser viewer based on the Tkinter UI in [cleaning-robots-gym](https://github.com/ui-iros/cleaning-robots-gym), including its map colors, icons, local observation boundary, Run Status panel, and Map Key.
 
-## Screenshots
+The published viewer runs entirely in the browser. It supports manual actions and a **random policy**; it does not run the trained DQN/PPO/TRPO/A2C/SAC checkpoints. The existing Python backend and training code remain in `backend/` and `ml/` for separate local work.
 
-> _Coming soon: demo single-grid screenshot & arena mode screenshot/GIF._
+## Controls
 
-### Single-Grid Demo
+- **Journal benchmark:** original 7×7 layout, five obstacles, and journal parameters.
+- **Random layout:** configure rows, columns (2–20), obstacle count, and seed. Every free cell stays reachable from the dock.
+- **Custom layout:** use **Edit layout** to place obstacles, move the dock, or erase cells, then **Apply & reset**. Disconnected layouts are rejected.
+- **Environment settings:** configure battery, charge amount, horizon, move probability, and dirt rates in random/custom modes.
+- **Policy / manual action:** choose Policy for uniformly random actions, or North, South, East, West, Stay, Clean, or Charge. Use Play/Pause, Step, Reset, and the speed slider (0.5–8 steps/s).
+- **Load/Save config:** JSON uses the Tkinter export format: `environment`, `mode`, `seed`, and `config`. Save exports the applied configuration; pending form edits need Apply & reset first.
+- **Save PNG:** export the current map, status, and legend.
 
-Live WebSocket-powered demo with canvas grid rendering, algorithm selection (DQN, PPO, TRPO, A2C, SAC), manual/auto step, speed control, battery meter, and episode stats.
+The browser follows the gym's battery, cleaning, spontaneous dirt, movement, and reward rules. Its seeded PRNG is independent of NumPy: the same seed repeats a browser run, but does not produce identical random draws to Python. Reset returns to the applied configuration and seed. Battery depletion away from the dock returns the robot to the dock with the reset penalty; the run stops at the configured horizon.
 
-### Arena Mode
-
-Multi-grid comparison at `/arena`. Select up to 4 algorithms and run them simultaneously on identical grid configurations (same seed, same dirt layout) for fair visual comparison.
-
-## Features
-
-- **Single-Grid Demo** — Observe policy decisions step by step with real-time WebSocket updates.
-- **Multi-Grid Arena** — Compare up to 4 algorithms running lockstep on identical environments.
-- **5 RL Algorithms** — DQN, PPO, TRPO, A2C, SAC (Stable-Baselines3 & sb3-contrib).
-- **i18n** — English (default) and Indonesian language support with EN/ID switcher.
-- **Canvas Renderer** — Custom 2D canvas grid with dirt levels, obstacles, battery status, and robot animation.
-
-## Limitations
-
-Per the project paper (Table 4 policy-quality results), not all algorithms achieve the same level of performance:
-
-| Algorithm | Status |
-|-----------|--------|
-| **PPO** | Best performing — 71.67% success rate |
-| **TRPO** | Competitive with PPO |
-| **DQN** | Stuck in conservative local optimum — rarely completes full grid cleanup |
-| **A2C** | Similar issue to DQN — insufficient exploration |
-| **SAC** | Continuous-to-discrete mapping adds instability; also struggles |
-
-See `docs/hyperparameter-improvements.md` for analysis and suggested retraining hyperparameters.
-
-## Model Loading Notes
-
-DQN, PPO, A2C, and SAC checkpoints are Stable-Baselines3 models. TRPO is provided by `sb3-contrib`.
-
-SAC was trained through a continuous-action wrapper that maps a one-dimensional Box action back to the discrete environment action set.
-
-All models are loaded and cached at startup (not lazy-load per request). The `/health` endpoint reports per-model load times.
-
-## Retraining
-
-If you want to experiment with improved hyperparameters for DQN, A2C, or SAC:
-
-```bash
-cd ml
-pip install -r requirements.txt
-python retrain_v2.py --algorithms dqn a2c sac --total_timesteps 300000
-```
-
-This produces `{algo}_v3_policy_seed_12345.zip` files alongside the existing v2 baselines — no models are replaced automatically. See `docs/hyperparameter-improvements.md` for the full rationale.
-
-## Local Development
-
-### Backend
-
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-### Frontend
+## Development
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-### Environment Variables
-
-Copy `.env.example` to `.env` and adjust as needed:
-
 ```bash
-cp .env.example .env
+npm run lint
+npm test
+npm run build
 ```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CORS_ORIGINS` | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
-| `VITE_API_URL` | `http://localhost:8000` | Backend API URL for frontend dev server |
-
-## Production Docker
-
-```bash
-docker build -t vacuum-rl .
-docker run --rm -p 7860:7860 vacuum-rl
-```
+No API URL or backend is needed for the viewer. See [DEPLOY.md](DEPLOY.md) for GitHub Pages deployment.
