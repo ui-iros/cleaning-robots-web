@@ -91,6 +91,7 @@ export function normalizeConfig(input = {}) {
 export function createSimulation(input = {}, seed = 12345) {
   integer(seed, 0, 4294967295, "Seed");
   const config = normalizeConfig(input), random = seededRandom(seed), policyRandom = seededRandom(seed ^ 0x9E3779B9);
+  const dirtRandom = seededRandom(seed ^ 0x85EBCA6B), moveRandom = seededRandom(seed ^ 0xC2B2AE35);
   const rows = config.grid_rows, cols = config.grid_cols, dock = [...config.dock_position];
   const obstacles = config.obstacle.mode === "random" ? randomLayout(rows, cols, dock, config.obstacle.count, random) : clone(config.obstacle.positions);
   const blocked = new Set(obstacles.map(key));
@@ -119,19 +120,21 @@ export function createSimulation(input = {}, seed = 12345) {
       const grid = previous.grid.map((row) => [...row]);
       const atDock = same(pos, dock), level = grid[pos[0] - 1][pos[1] - 1];
       const deltas = { N: [-1, 0], S: [1, 0], E: [0, 1], W: [0, -1] };
+      const moveRoll = moveRandom();
       if (action === "Charge") battery = atDock ? Math.min(battery + config.charge_amount, config.battery_capacity) : battery;
       else battery = Math.max(0, battery - (action === "Clean" ? 2 : 1));
       if (action === "Clean" && !atDock) grid[pos[0] - 1][pos[1] - 1] = Math.max(0, level - 1);
       for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
+        const roll = dirtRandom();
         if (same([row + 1, col + 1], dock) || blocked.has(`${row + 1},${col + 1}`)) continue;
         const dirt = grid[row][col];
-        if (dirt < 3 && random() < config.dirt_dynamics[`rho${dirt}`]) grid[row][col]++;
+        if (dirt < 3 && roll < config.dirt_dynamics[`rho${dirt}`]) grid[row][col]++;
       }
       if (deltas[action]) {
         const [dr, dc] = deltas[action], target = [pos[0] + dr, pos[1] + dc];
         reward -= r.move_cost;
         if (!inside(target, rows, cols) || blocked.has(key(target))) { moveCase = "bump"; collision = target; reward -= r.bump_penalty; }
-        else if (random() < config.p_move) { next = target; moveCase = "success"; }
+        else if (moveRoll < config.p_move) { next = target; moveCase = "success"; }
         else { moveCase = "slip"; reward -= r.slip_penalty; }
       } else if (action === "Stay") reward -= r.idle_penalty;
       else if (action === "Clean") reward += atDock ? -r.clean_cost - r.dock_clean_penalty : level > 0 ? r[`alpha_${level}`] - r.clean_cost : -r.clean_cost - r.waste_penalty;

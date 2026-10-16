@@ -73,11 +73,49 @@ try {
   await page.getByRole("button", { name: "Save PNG", exact: true }).click();
   const png = await readFile(await (await pngDownload).path());
   assert.equal(png.subarray(1, 4).toString(), "PNG");
+  // Every single-grid algorithm runs its exported trained policy.
+  await page.getByLabel("Action", { exact: true }).selectOption("Policy");
+  for (const algorithm of ["dqn", "ppo", "trpo", "a2c", "sac"]) {
+    await page.getByLabel("Algorithm", { exact: true }).selectOption(algorithm);
+    await page.waitForFunction(() => ![...document.querySelectorAll("button")].find((button) => button.textContent === "Step")?.disabled);
+    await page.getByRole("button", { name: "Step", exact: true }).click();
+    assert.equal(await step.innerText(), "1/500");
+    assert.equal(await page.locator(".controller-status strong").innerText(), `${algorithm.toUpperCase()} policy`);
+  }
+  await page.getByRole("button", { name: "Multi-grid benchmark", exact: true }).click();
+  await page.waitForFunction(() => document.querySelectorAll(".benchmark-card").length === 5);
+  await page.getByRole("button", { name: "Step all", exact: true }).click();
+  assert.equal(await page.locator(".benchmark-progress").innerText(), "Step 1/500");
+  await page.screenshot({ path: join(screenshots, "benchmark-desktop.png"), fullPage: true });
+  await page.getByRole("button", { name: "Run to horizon", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector(".benchmark-heading .dirt-pill")?.textContent === "COMPLETE");
+  assert.equal(await page.locator(".benchmark-table tbody tr").count(), 5);
+  const rows = await page.locator(".benchmark-table tbody tr").allTextContents();
+  rows.forEach((row) => assert.match(row, /500/));
+  await page.getByRole("button", { name: "Reset benchmark", exact: true }).click();
+  assert.equal(await page.locator(".benchmark-progress").innerText(), "Step 0/500");
+  for (const name of ["DQN", "TRPO", "A2C", "SAC"]) await page.getByRole("checkbox", { name, exact: true }).uncheck();
+  await page.waitForFunction(() => document.querySelectorAll(".benchmark-card").length === 1);
+  assert.equal(await page.locator(".benchmark-card h2").innerText(), "PPO");
+  await page.getByRole("checkbox", { name: "PPO", exact: true }).uncheck();
+  await page.getByText("Select at least one algorithm.", { exact: true }).waitFor();
+  await page.getByRole("checkbox", { name: "PPO", exact: true }).check();
+  await page.waitForFunction(() => document.querySelectorAll(".benchmark-card").length === 1);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: join(screenshots, "mobile.png"), fullPage: true });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Mobile must not overflow horizontally");
   assert.deepEqual(errors, []); assert.deepEqual(external, []);
-  console.log("Browser checks passed: manual/playback, random/custom layouts, JSON round-trip, invalid import, PNG, mobile, no backend requests.");
+  await page.getByRole("button", { name: "Single grid", exact: true }).click();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "Single-grid mobile must not overflow horizontally");
+  // Loading failures must be visible rather than silently using random actions.
+  await page.route("**/policies/ppo.json", (route) => route.fulfill({ status: 503, body: "Unavailable" }));
+  await page.reload();
+  await page.getByRole("alert").waitFor();
+  assert.equal(await page.getByRole("button", { name: "Step", exact: true }).isDisabled(), true);
+  await page.unroute("**/policies/ppo.json");
+  await page.getByRole("button", { name: "Retry policy", exact: true }).click();
+  await page.waitForFunction(() => ![...document.querySelectorAll("button")].find((button) => button.textContent === "Step")?.disabled);
+  console.log(`Browser checks passed: manual/playback, config, 5 trained policies, 5-grid benchmark to horizon, algorithm selection, PNG, mobile, no backend requests. Screenshots: ${screenshots}`);
 } finally {
   await browser?.close(); await server.close();
 }

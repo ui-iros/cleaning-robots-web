@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import SimBoard, { BoardLegend } from "./components/SimBoard.jsx";
 import { ACTIONS, JOURNAL_CONFIG, createSimulation, normalizeConfig, validateLayout } from "./sim/localSimulation.js";
 import { saveFrame } from "./sim/saveFrame.js";
+import { ALGORITHMS, loadPolicy, policyAction } from "./sim/policies.js";
+import BenchmarkView from "./components/BenchmarkView.jsx";
 import "./viewer.css";
 
 const MODES = ["Journal benchmark", "Random layout", "Custom layout"];
@@ -57,6 +59,11 @@ export default function App() {
   const [appliedMode, setAppliedMode] = useState(MODES[0]);
   const [seed, setSeed] = useState(12345);
   const [action, setAction] = useState("Policy");
+  const [algorithm, setAlgorithm] = useState("ppo");
+  const [policy, setPolicy] = useState(null);
+  const [policyError, setPolicyError] = useState("");
+  const [policyAttempt, setPolicyAttempt] = useState(0);
+  const [view, setView] = useState("single");
   const [speed, setSpeed] = useState(2);
   const [playing, setPlaying] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -64,13 +71,22 @@ export default function App() {
   const file = useRef(null);
 
   useEffect(() => {
-    if (!playing || state.truncated) return undefined;
+    let canceled = false;
+    setPlaying(false); setPolicy(null); setPolicyError("");
+    if (algorithm !== "random") loadPolicy(algorithm).then((next) => { if (!canceled) setPolicy(next); }).catch((err) => { if (!canceled) setPolicyError(err.message); });
+    return () => { canceled = true; };
+  }, [algorithm, policyAttempt]);
+  const policyReady = algorithm === "random" || policy?.algorithm === algorithm;
+  const controller = action === "Policy" ? algorithm === "random" ? "Random policy" : `${algorithm.toUpperCase()} policy` : `Manual: ${ACTIONS[action]}`;
+
+  useEffect(() => {
+    if (!playing || state.truncated || view !== "single" || (action === "Policy" && !policyReady)) return undefined;
     const timer = setInterval(() => {
-      const next = simulation.step(action); setState(next);
+      const next = simulation.step(action === "Policy" && algorithm !== "random" ? policyAction(policy, simulation.state) : action); setState(next);
       if (next.truncated) setPlaying(false);
     }, 1000 / speed);
     return () => clearInterval(timer);
-  }, [playing, speed, simulation, action, state.truncated]);
+  }, [playing, speed, simulation, action, state.truncated, algorithm, policy, policyReady, view]);
 
   const update = (name, value) => setConfig((prev) => ({ ...prev, [name]: value }));
   function replace(nextConfig, nextMode, nextSeed = seed) {
@@ -86,7 +102,11 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
   function reset() { setPlaying(false); replace(simulation.config, appliedMode, simulation.seed); }
-  function step() { setPlaying(false); setState(simulation.step(action)); }
+  function step() { setPlaying(false); setState(simulation.step(action === "Policy" && algorithm !== "random" ? policyAction(policy, simulation.state) : action)); }
+  function selectAlgorithm(next) {
+    setPlaying(false); setAlgorithm(next); setAction("Policy");
+    replace(simulation.config, appliedMode, simulation.seed);
+  }
   function openEditor() {
     setPlaying(false);
     try {
@@ -126,6 +146,7 @@ export default function App() {
   const numericInput = (label, value, change, min, max, disabled = false, step = 1) => <label className="viewer-field">{label}<input aria-label={label} type="number" value={value} min={min} max={max} step={step} disabled={disabled} onChange={(e) => change(e.target.value === "" ? "" : Number(e.target.value))} /></label>;
 
   return <main className="tk-viewer">
+    <nav className="viewer-modes" aria-label="Viewer mode"><button aria-pressed={view === "single"} onClick={() => { setPlaying(false); setView("single"); }}>Single grid</button><button aria-pressed={view === "multi"} onClick={() => { setPlaying(false); setView("multi"); }}>Multi-grid benchmark</button></nav>
     <header className="viewer-toolbar">
       <div className="toolbar-row">
         <label className="layout-label">Layout <select aria-label="Layout" value={mode} onChange={(e) => { setMode(e.target.value); setPlaying(false); }}>{MODES.map((name) => <option key={name}>{name}</option>)}</select></label>
@@ -146,16 +167,19 @@ export default function App() {
         {numericInput("Move probability", config.p_move, (v) => update("p_move", v), 0, 1, mode === MODES[0], 0.01)}
         {[0, 1, 2].map((i) => <React.Fragment key={i}>{numericInput(`Dirt rate ρ${i}`, config.dirt_dynamics[`rho${i}`], (v) => update("dirt_dynamics", { ...config.dirt_dynamics, [`rho${i}`]: v }), 0, 1, mode === MODES[0], 0.001)}</React.Fragment>)}
       </div></details>
-      <div className="toolbar-row playback-row">
-        <strong className="policy-source">{action === "Policy" ? "Random policy" : "Manual control"}</strong>
+      {view === "single" && <div className="toolbar-row playback-row">
+        <label className="algorithm-label">Algorithm<select aria-label="Algorithm" value={algorithm} onChange={(e) => selectAlgorithm(e.target.value)}>{ALGORITHMS.map((name) => <option key={name} value={name}>{name.toUpperCase()}</option>)}<option value="random">Random</option></select></label>
+        <strong className="policy-source">{controller}</strong>
         <select aria-label="Action" value={action} onChange={(e) => { setAction(e.target.value); setPlaying(false); }}><option value="Policy">Policy</option>{Object.entries(ACTIONS).map(([name, label]) => <option key={name} value={name}>{label}</option>)}</select>
-        <button onClick={reset}>Reset</button><button disabled={state.truncated} onClick={() => setPlaying(!playing)}>{playing ? "Pause" : "Play"}</button><button disabled={state.truncated} onClick={step}>Step</button>
-        <div className="toolbar-spacer" /><button onClick={() => saveFrame(state, appliedMode, action === "Policy" ? "Random policy" : `Manual: ${ACTIONS[action]}`)}>Save PNG</button>
-      </div>
+        <button onClick={reset}>Reset</button><button disabled={state.truncated || (action === "Policy" && !policyReady)} onClick={() => setPlaying(!playing)}>{playing ? "Pause" : "Play"}</button><button disabled={state.truncated || (action === "Policy" && !policyReady)} onClick={step}>Step</button>
+        <div className="toolbar-spacer" /><button onClick={() => saveFrame(state, appliedMode, controller)}>Save PNG</button>
+      </div>}
       <label className="speed-row">Speed<input aria-label="Speed" type="range" min="0.5" max="8" step="0.5" value={speed} onChange={(e) => setSpeed(Number(e.target.value))} /><output>{speed.toFixed(1)} steps/s</output></label>
     </header>
     {error && <div className="viewer-error" role="alert">{error}</div>}
-    <section className="viewer-stage" aria-label="Cleaning robot simulator">
+    {view === "single" && !policyReady && !policyError && <p className="policy-loading" role="status">Loading {algorithm.toUpperCase()} policy…</p>}
+    {view === "single" && policyError && <p className="viewer-error" role="alert">{policyError} <button onClick={() => setPolicyAttempt((n) => n + 1)}>Retry policy</button></p>}
+    {view === "multi" ? <BenchmarkView config={simulation.config} seed={simulation.seed} speed={speed} layout={appliedMode} paused={editing} /> : <section className="viewer-stage" aria-label="Cleaning robot simulator">
       <div className="map-heading"><h1>CleaningRobots-v0</h1><div><strong>Full map</strong><span className="dirt-pill">{state.render.dynamic_dirt ? "DYNAMIC DIRT" : "STATIC DIRT"}</span></div><p>{appliedMode}</p></div>
       <div className="viewer-map">
         <SimBoard state={state} style={{ aspectRatio: `${state.grid[0].length * 76 + 48} / ${state.grid.length * 76 + 48}` }} showLegend={false} stepIntervalMs={1000 / speed} className="tk-board" canvasClassName="tk-canvas" ariaLabel="Full map with robot, dock, dirt and obstacles" />
@@ -166,10 +190,10 @@ export default function App() {
         <div className={`battery-panel ${batteryRatio <= 0.25 ? "is-low" : ""}`}><div><span>Battery</span><strong>{state.battery}/{state.battery_capacity}</strong></div><progress aria-label="Battery level" value={state.battery} max={state.battery_capacity} /></div>
         <dl className="status-cards">{cards.map(([label, value, color]) => <div className={`status-card ${label === "Episode Return" ? "wide-card" : ""}`} key={label}><dt>{label}</dt><dd className={color}>{value}</dd></div>)}</dl>
         <h2 className="map-key-heading">Map Key</h2><BoardLegend iconSize={38} />
-        <div className="controller-status"><span>Controller</span><strong>{action === "Policy" ? "Random policy" : `Manual: ${ACTIONS[action]}`}</strong><p className={batteryRatio <= 0.25 ? "red" : "green"}>{batteryRatio <= 0.25 ? "Low battery" : atDock ? "At charging dock" : "Away from dock"}</p></div>
+        <div className="controller-status"><span>Controller</span><strong>{controller}</strong>{algorithm !== "random" && action === "Policy" && <small>Trained checkpoint · seed 12345</small>}<p className={batteryRatio <= 0.25 ? "red" : "green"}>{batteryRatio <= 0.25 ? "Low battery" : atDock ? "At charging dock" : "Away from dock"}</p></div>
       </aside>
-    </section>
-    <footer className="viewer-footer">Runs in your browser · Manual actions & random policy · <a href="https://github.com/ui-iros/cleaning-robots-gym">cleaning-robots-gym</a></footer>
+    </section>}
+    <footer className="viewer-footer">Runs in your browser · Trained policies & manual control · <a href="https://github.com/ui-iros/cleaning-robots-gym">cleaning-robots-gym</a></footer>
     {editing && <LayoutEditor config={{ ...config, dock_position: config.dock_position[0] <= config.grid_rows && config.dock_position[1] <= config.grid_cols ? config.dock_position : [1, 1] }} onClose={() => setEditing(false)} onApply={(dock, obstacles) => {
       try { replace({ ...config, dock_position: dock, obstacle: { mode: "fixed", count: obstacles.length, positions: obstacles } }, MODES[2]); setEditing(false); }
       catch (err) { setError(err.message); }
