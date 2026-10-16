@@ -275,9 +275,9 @@ export default function App() {
           <h2>{t("about.title")}</h2>
         </div>
         <div className="pdf-viewer">
-          <object data="/paper.pdf" type="application/pdf" className="pdf-iframe" aria-label="Project paper">
+          <object data={`${import.meta.env.BASE_URL}paper.pdf`} type="application/pdf" className="pdf-iframe" aria-label="Project paper">
             <p style={{ padding: 16 }}>
-              PDF tidak bisa ditampilkan di browser ini. <a href="/paper.pdf" target="_blank" rel="noreferrer">Buka paper</a>.
+              PDF tidak bisa ditampilkan di browser ini. <a href={`${import.meta.env.BASE_URL}paper.pdf`} target="_blank" rel="noreferrer">Buka paper</a>.
             </p>
           </object>
         </div>

@@ -8,7 +8,7 @@ import "./styles.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Suspense fallback={<div style={{ padding: 40, textAlign: "center" }}>Loading...</div>}>
         <Routes>
           <Route path="/arena" element={<ArenaView />} />

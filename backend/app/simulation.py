@@ -18,7 +18,7 @@ ML_DIR = ROOT_DIR / "ml"
 if str(ML_DIR) not in sys.path:
     sys.path.insert(0, str(ML_DIR))
 
-from env import VacuumCleaningEnv  # noqa: E402
+from env import VacuumCleaningEnv
 
 
 def _policy_model_path(algorithm: str) -> Path:
@@ -100,13 +100,13 @@ class PolicyCache:
 
     def load_all(self) -> None:
         start = time.perf_counter()
-        for algorithm in ALGORITHMS:
+        for algorithm, spec in ALGORITHMS.items():
             algo_start = time.perf_counter()
             try:
                 self.get(algorithm)
                 elapsed = time.perf_counter() - algo_start
                 self._load_times[algorithm] = elapsed
-                logger.info("Loaded %s in %.2fs", ALGORITHMS[algorithm].name, elapsed)
+                logger.info("Loaded %s in %.2fs", spec.name, elapsed)
             except RuntimeError:
                 elapsed = time.perf_counter() - algo_start
                 self._load_times[algorithm] = elapsed
@@ -189,7 +189,7 @@ def snapshot_rollout(algorithm: str, seed: int, steps: list[int]) -> dict[str, A
     determined by its arguments and safe to cache.
     """
     algorithm = normalize_algorithm(algorithm)
-    return _snapshot_rollout_cached(algorithm, int(seed), tuple(sorted(set(int(step) for step in steps))))
+    return _snapshot_rollout_cached(algorithm, int(seed), tuple(sorted({int(step) for step in steps})))
 
 
 @lru_cache(maxsize=128)

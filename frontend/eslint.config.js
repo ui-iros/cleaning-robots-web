@@ -1,8 +1,11 @@
 export default [
   {
+    files: ["**/*.{js,jsx}"],
+    ignores: ["dist/**", "node_modules/**"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
+      parserOptions: { ecmaFeatures: { jsx: true } },
       globals: {
         window: "readonly",
         document: "readonly",
@@ -19,7 +22,8 @@ export default [
       },
     },
     rules: {
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      // JSX component names and the classic React import start with a capital.
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^[A-Z]" }],
       "no-console": "warn",
     },
   },

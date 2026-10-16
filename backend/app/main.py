@@ -32,6 +32,7 @@ def _allowed_origins() -> list[str]:
     origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "https://ui-iros.github.io",
         "https://*.vercel.app",
     ]
     if configured.strip():
@@ -96,7 +97,9 @@ def algorithms() -> dict:
 
 
 @app.post("/reset", response_model=EnvStateResponse)
-def reset(payload: ResetRequest = ResetRequest()) -> dict:
+def reset(payload: ResetRequest | None = None) -> dict:
+    if payload is None:
+        payload = ResetRequest()
     return reset_env(_rest_env, algorithm=payload.algorithm, seed=payload.seed)
 
 
@@ -130,6 +133,7 @@ async def websocket_step(websocket: WebSocket) -> None:
     try:
         await websocket.send_json(reset_env(env, algorithm=algorithm, seed=12345))
     except Exception:
+        logger.exception("ws/step initialization failed")
         env.close()
         return
 
@@ -157,15 +161,16 @@ async def websocket_step(websocket: WebSocket) -> None:
             except WebSocketDisconnect:
                 raise
             except Exception as exc:
-                logger.warning("ws/step inner error: %s", exc)
+                logger.warning("ws/step inner error: %s", exc, exc_info=True)
                 try:
                     await websocket.send_json({"error": f"Internal error: {exc}", "recoverable": True})
                 except Exception:
+                    logger.exception("ws/step error response failed")
                     raise WebSocketDisconnect() from exc
     except WebSocketDisconnect:
         pass
-    except Exception as exc:
-        logger.error("ws/step fatal error: %s", exc)
+    except Exception:
+        logger.exception("ws/step fatal error")
     finally:
         env.close()
 
@@ -219,15 +224,16 @@ async def websocket_arena(websocket: WebSocket) -> None:
             except WebSocketDisconnect:
                 raise
             except Exception as exc:
-                logger.warning("ws/arena inner error: %s", exc)
+                logger.warning("ws/arena inner error: %s", exc, exc_info=True)
                 try:
                     await websocket.send_json({"type": "arena_error", "error": f"Internal error: {exc}", "recoverable": True})
                 except Exception:
+                    logger.exception("ws/arena error response failed")
                     raise WebSocketDisconnect() from exc
     except WebSocketDisconnect:
         pass
-    except Exception as exc:
-        logger.error("ws/arena fatal error: %s", exc)
+    except Exception:
+        logger.exception("ws/arena fatal error")
     finally:
         for env in envs.values():
             env.close()
