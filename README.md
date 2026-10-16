@@ -17,6 +17,7 @@ The published viewer runs entirely in the browser, including the trained **DQN, 
 - **Algorithm:** select DQN, PPO (default), TRPO, A2C, SAC, or Random. Changing algorithm resets the episode to the applied configuration and seed.
 - **Policy / manual action:** Policy runs the selected algorithm; Random uses uniformly random actions. Manual options are North, South, East, West, Stay, Clean, and Charge. Use Play/Pause, Step, Reset, and the speed slider (0.5–8 steps/s).
 - **Multi-grid benchmark:** run all five trained algorithms, or a selected subset, on independent grids with identical initial layout, dirt, battery, seed, and shared environment noise. Play/Pause, Step all, Run to horizon, and Reset benchmark advance every selected grid together. The comparison table reports steps, return, remaining dirt, dirty cells, and battery resets. This is one seeded episode per algorithm, not a multi-episode policy-quality evaluation.
+- **Arrange grids:** drag the grip beside an algorithm name to move its card, or focus the grip and use arrow keys. Ordering is remembered in your browser and also applied to the comparison table. Rearranging cards preserves the running simulations and their results.
 - **Load/Save config:** JSON uses the Tkinter export format: `environment`, `mode`, `seed`, and `config`. Save exports the applied configuration; pending form edits need Apply & reset first.
 - **Save PNG:** export the current map, status, and legend.
 

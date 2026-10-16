@@ -29,6 +29,14 @@ body:has(.tk-viewer) { background: #f6f7f9; }
 .benchmark-card { border: 1px solid #d6deea; border-radius: 6px; background: white; min-width: 0; padding: 8px 6px; }
 .benchmark-card header { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 0 6px 8px; }
 .benchmark-card h2 { font-size: 15px; margin: 0; font-weight: 700; }
+.benchmark-card-title { display: flex; align-items: center; gap: 5px; }
+.benchmark-card .card-drag-handle { min-height: 28px; width: 26px; padding: 0; border-color: transparent; background: transparent; box-shadow: none; color: #647084; font-size: 22px; line-height: 1; cursor: grab; touch-action: none; user-select: none; }
+.benchmark-card .card-drag-handle:active { cursor: grabbing; }
+.benchmark-card.is-dragging { opacity: .45; }
+.benchmark-card.is-drop-target { outline: 2px solid #2b64b3; outline-offset: 2px; background: #f0f6ff; }
+.card-drag-preview { position: fixed; z-index: 100; pointer-events: none; background: #fff; border: 1px solid #2b64b3; border-radius: 5px; padding: 8px 14px; font-weight: 700; box-shadow: 0 5px 18px #17212f26; }
+.benchmark-reorder-help { font-size: 11px; color: #647084; margin: -4px 0 8px; }
+.reorder-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .benchmark-card .status-pill { font-size: 11px; padding: 2px 10px; }
 .benchmark-board { width: 100%; max-width: 220px; margin: 0 auto; }
 .benchmark-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin: 8px 3px; }
