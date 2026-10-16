@@ -86,9 +86,11 @@ try {
   await page.waitForFunction(() => document.querySelectorAll(".benchmark-card").length === 5);
   await page.getByRole("button", { name: "Step all", exact: true }).click();
   assert.equal(await page.locator(".benchmark-progress").innerText(), "Step 1/500");
+  await page.setViewportSize({ width: 1366, height: 768 });
   await page.screenshot({ path: join(screenshots, "benchmark-desktop.png"), fullPage: true });
   await page.getByRole("button", { name: "Run to horizon", exact: true }).click();
   await page.waitForFunction(() => document.querySelector(".benchmark-heading .dirt-pill")?.textContent === "COMPLETE");
+  await page.locator(".benchmark-results > summary").click();
   assert.equal(await page.locator(".benchmark-table tbody tr").count(), 5);
   const rows = await page.locator(".benchmark-table tbody tr").allTextContents();
   rows.forEach((row) => assert.match(row, /500/));

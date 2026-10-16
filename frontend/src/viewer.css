@@ -12,38 +12,50 @@ body:has(.tk-viewer) { background: #f6f7f9; }
 .algorithm-label { display: flex; align-items: center; gap: 8px; }
 .playback-row .algorithm-label select { width: 90px; }
 .policy-loading { color: #647084; font-size: 13px; }
-.benchmark-view { padding-top: 18px; }
+.tk-viewer.is-benchmark { max-width: 1440px; }
+.benchmark-view { padding-top: 12px; }
 .benchmark-heading { display: flex; align-items: center; gap: 18px; }
-.benchmark-heading h1 { font-size: 24px; margin: 0; font-weight: 700; }
-.benchmark-description, .benchmark-note { font-size: 13px; color: #566174; line-height: 1.6; margin: 8px 0 16px; }
-.algorithm-checks { display: flex; flex-wrap: wrap; gap: 22px; border: 1px solid #d6deea; border-radius: 4px; padding: 8px 14px 12px; margin-bottom: 14px; }
+.benchmark-heading h1 { font-size: 21px; margin: 0; font-weight: 700; }
+.benchmark-description, .benchmark-note { font-size: 12px; color: #566174; line-height: 1.5; margin: 6px 0 10px; }
+.benchmark-toolbar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 12px; }
+.algorithm-checks { display: flex; flex-wrap: wrap; gap: 14px; border: 1px solid #d6deea; border-radius: 4px; padding: 4px 10px 8px; margin: 0; font-size: 12px; }
 .algorithm-checks legend { color: #434f61; padding: 0 5px; }
 .algorithm-checks label { display: flex; align-items: center; gap: 7px; font-weight: 600; }
 .algorithm-checks input { accent-color: #2b64b3; width: 16px; height: 16px; }
-.benchmark-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 18px; }
+.benchmark-controls { display: flex; flex: 1; flex-wrap: wrap; gap: 6px; align-items: center; }
+.benchmark-controls button { font-size: 12px; min-height: 31px; padding: 5px 9px; }
 .benchmark-progress { margin-left: auto; color: #434f61; font-variant-numeric: tabular-nums; }
-.benchmark-grids { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.benchmark-card { border: 1px solid #d6deea; border-radius: 6px; background: white; min-width: 0; padding: 12px 8px; }
+.benchmark-grids { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.benchmark-card { border: 1px solid #d6deea; border-radius: 6px; background: white; min-width: 0; padding: 8px 6px; }
 .benchmark-card header { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 0 6px 8px; }
-.benchmark-card h2 { font-size: 17px; margin: 0; font-weight: 700; }
+.benchmark-card h2 { font-size: 15px; margin: 0; font-weight: 700; }
 .benchmark-card .status-pill { font-size: 11px; padding: 2px 10px; }
-.benchmark-board { width: 100%; }
+.benchmark-board { width: 100%; max-width: 220px; margin: 0 auto; }
 .benchmark-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin: 8px 3px; }
 .benchmark-metrics div { background: #f8fafc; border: 1px solid #d6deea; border-radius: 3px; padding: 6px; }
 .benchmark-metrics dt { color: #566174; font-size: 11px; }
-.benchmark-metrics dd { color: #2b64b3; margin: 2px 0 0; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.benchmark-metrics dd { color: #2b64b3; margin: 2px 0 0; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .benchmark-card-footer { font-size: 11px; margin: 8px 6px 0; color: #566174; }
-.benchmark-table-scroll { overflow: auto; margin-top: 20px; border: 1px solid #d6deea; border-radius: 5px; background: white; }
+.benchmark-results { margin-top: 12px; border-top: 1px solid #d6deea; padding-top: 10px; }
+.benchmark-results > summary { cursor: pointer; color: #434f61; font-size: 12px; font-weight: 600; width: fit-content; }
+.benchmark-table-scroll { overflow: auto; margin-top: 10px; border: 1px solid #d6deea; border-radius: 5px; background: white; }
 .benchmark-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; white-space: nowrap; }
 .benchmark-table caption { text-align: left; padding: 12px; font-size: 16px; font-weight: 600; }
 .benchmark-table th, .benchmark-table td { padding: 10px 12px; border-top: 1px solid #e2e8f0; }
 .benchmark-table thead { background: #f8fafc; color: #434f61; }
 .best-return { display: inline-block; background: #ecfdf5; color: #137b43; padding: 1px 6px; border-radius: 3px; font-size: 11px; margin-left: 5px; }
-.benchmark-legend h2 { font-size: 18px; font-weight: 600; margin: 16px 0 8px; }
-.benchmark-legend .grid-legend { justify-content: flex-start; border: 0; padding-left: 0; gap: 14px 24px; }
-.benchmark-legend .legend-item { white-space: pre-line; color: #434f61; }
-@media (max-width: 900px) { .benchmark-grids { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 620px) { .benchmark-grids { grid-template-columns: minmax(0, 1fr); }.benchmark-progress { width: 100%; margin-left: 0; }.benchmark-heading h1 { font-size: 20px; }.viewer-modes { flex-wrap: wrap; } }
+.benchmark-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 20px; margin-top: 12px; }
+.benchmark-legend h2 { font-size: 13px; font-weight: 600; margin: 0; }
+.legend-groups { display: flex; flex-wrap: wrap; gap: 10px 24px; min-width: 0; max-width: 100%; }
+.benchmark-legend .grid-legend { flex-wrap: nowrap; justify-content: flex-start; border: 0; padding: 0; gap: 14px; }
+.benchmark-legend .legend-item { white-space: pre-line; color: #434f61; font-size: 11px; line-height: 14px; gap: 5px; }
+.benchmark-legend .grid-legend:last-child { flex-wrap: wrap; max-width: 100%; }
+.is-benchmark .viewer-modes { margin-bottom: 10px; padding-bottom: 8px; }
+.is-benchmark .toolbar-row { margin-bottom: 8px; }
+.is-benchmark .viewer-toolbar { padding-bottom: 8px; }
+@media (min-width: 1200px) { .benchmark-grids { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 520px) and (max-width: 759px) { .benchmark-grids { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 519px) { .benchmark-grids { grid-template-columns: minmax(0, 1fr); }.benchmark-controls { flex-basis: 100%; }.benchmark-progress { width: 100%; margin-left: 0; }.benchmark-heading h1 { font-size: 20px; }.viewer-modes { flex-wrap: wrap; } }
 .viewer-toolbar { padding: 0 0 13px; border-bottom: 1px solid #dce3ec; }
 .toolbar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
 .layout-label { display: flex; align-items: center; gap: 10px; }

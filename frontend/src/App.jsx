@@ -145,7 +145,7 @@ export default function App() {
   ];
   const numericInput = (label, value, change, min, max, disabled = false, step = 1) => <label className="viewer-field">{label}<input aria-label={label} type="number" value={value} min={min} max={max} step={step} disabled={disabled} onChange={(e) => change(e.target.value === "" ? "" : Number(e.target.value))} /></label>;
 
-  return <main className="tk-viewer">
+  return <main className={`tk-viewer ${view === "multi" ? "is-benchmark" : "is-single"}`}>
     <nav className="viewer-modes" aria-label="Viewer mode"><button aria-pressed={view === "single"} onClick={() => { setPlaying(false); setView("single"); }}>Single grid</button><button aria-pressed={view === "multi"} onClick={() => { setPlaying(false); setView("multi"); }}>Multi-grid benchmark</button></nav>
     <header className="viewer-toolbar">
       <div className="toolbar-row">

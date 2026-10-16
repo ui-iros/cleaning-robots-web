@@ -126,10 +126,10 @@ function LegendIcon({ kind, size }) {
   return <canvas ref={canvasRef} className="legend-icon" style={{ width: size, height: size }} aria-hidden="true" />;
 }
 
-export function BoardLegend({ iconSize = 22 }) {
+export function BoardLegend({ iconSize = 22, items = LEGEND_ITEMS }) {
   return (
     <div className="grid-legend">
-      {LEGEND_ITEMS.map((kind) => (
+      {items.map((kind) => (
         <span key={kind} className="legend-item">
           <LegendIcon kind={kind} size={iconSize} />
           {LEGEND_LABELS[kind]}
